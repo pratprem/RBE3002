@@ -1,10 +1,10 @@
 #!/usr/bin/env python2
-
 import rospy
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Twist
 from tf.transformations import euler_from_quaternion
+import math
 
 class Lab2:
 
@@ -23,10 +23,11 @@ class Lab2:
         self.px=0.0
         self.py=0.0
         self.pth=0.0
+        rospy.sleep(1)
 
 
 
-    def send_speed(self, linear_speed, angular_speed):
+    def send_speed(self, linear_speed=0, angular_speed=0):
         """
         Sends the speeds to the motors.
         :param linear_speed  [float] [m/s]   The forward linear speed.
@@ -47,28 +48,49 @@ class Lab2:
 
 
 
-    def drive(self, distance, linear_speed):
+    def drive(self, distance, linear_speed, tolerance=.05):
         """
         Drives the robot in a straight line.
         :param distance     [float] [m]   The distance to cover.
         :param linear_speed [float] [m/s] The forward linear speed.
         """
         #save initial pose
-        init_pose=[self.px,self.py,self.pth]
-        while
+        init_pose={'x':self.px,'y':self.py}
+        #useful variables
+        cur_dist=0
+        #drive forward speed
+        self.send_speed(linear_speed)
+        #while distance not in tolerance
+        while abs(distance-cur_dist) > tolerance:
+            #calculate cur distance
+            cur_dist=math.hypot(self.px-init_pose['x'], self.py-init_pose['y'])
+            #sleep cause too much speed
+            rospy.Rate(20).sleep()
+        #send stop moving speed
+        self.send_speed()
 
 
 
-    def rotate(self, angle, aspeed):
+    def rotate(self, angle, aspeed, tolerance=.05):
         """
         Rotates the robot around the body center by the given angle.
         :param angle         [float] [rad]   The distance to cover.
         :param angular_speed [float] [rad/s] The angular speed.
         """
-        ### REQUIRED CREDIT
-        pass # delete this when you implement your code
-
-
+        #save initial pose
+        init_angle=self.pth
+        #useful variables
+        cur_rot=0
+        #drive forward speed
+        self.send_speed(angular_speed=aspeed)
+        #while not enough rotate
+        while abs(angle-cur_rot) > tolerance:
+            #calculate cur distance
+            cur_rot=(self.pth-init_angle) % (2*math.pi)
+            #sleep cause too much speed
+            rospy.sleep(.05)
+        #send stop moving speed
+        self.send_speed()
 
     def go_to(self, msg):
         """
@@ -76,7 +98,18 @@ class Lab2:
         This method is a callback bound to a Subscriber.
         :param msg [PoseStamped] The target pose.
         """
-        print('hallo')
+        #convert from rocketship numbers to english
+        quat_orig = msg.pose.pose.orientation
+        quat_list = [quat_orig.x, quat_orig.y, quat_orig.z, quat_orig.w]
+        (roll , pitch , yaw) = euler_from_quaternion (quat_list)
+        #initial pose
+        init_pose={'x':self.px,'y':self.py, 'th':self.pth}
+        #target pose
+        target_pose={'x':msg.pose.position.x,'y':msg.pose.position.y, 'th':yaw}
+        #calculate the l bowserjr needs to drive
+        distance=math.hypot(target_pose['x']-init_pose['x'],target_pose['y']-init_pose['y'])
+        #calculate the angle bowserjr needs to turn to face driving direction
+
 
 
 
@@ -102,7 +135,7 @@ class Lab2:
         """
         ### EXTRA CREDIT
         # TODO
-        pass # delete this when you implement your code
+        pass # delete this wwhile not rospy.is_shutdown():hen you implement your code
 
 
 
@@ -122,4 +155,6 @@ class Lab2:
         rospy.spin()
 
 if __name__ == '__main__':
-    Lab2().run()
+    node=Lab2()
+    node.rotate(math.pi,1)
+    node.run()
