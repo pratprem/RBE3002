@@ -18,7 +18,7 @@ class Lab2:
         self.cmd_vel = rospy.Publisher('/cmd_vel', Twist)
         #subscribing to odom and pose nodes
         rospy.Subscriber('/odom', Odometry , self.update_odometry)
-        rospy.Subscriber('/move_base_simple/goal', PoseStamped , self.update_odometry)
+        rospy.Subscriber('/move_base_simple/goal', PoseStamped , self.go_to)
         #initiallizing variables needed
         self.px=0.0
         self.py=0.0
@@ -65,7 +65,7 @@ class Lab2:
             #calculate cur distance
             cur_dist=math.hypot(self.px-init_pose['x'], self.py-init_pose['y'])
             #sleep cause too much speed
-            rospy.Rate(20).sleep()
+            rospy.sleep(.05)
         #send stop moving speed
         self.send_speed()
 
@@ -82,11 +82,14 @@ class Lab2:
         #useful variables
         cur_rot=0
         #drive forward speed
-        self.send_speed(angular_speed=aspeed)
+        if angle>0:
+            self.send_speed(angular_speed=abs(aspeed))
+        else:
+            self.send_speed(angular_speed=-abs(aspeed))
         #while not enough rotate
         while abs(angle-cur_rot) > tolerance:
             #calculate cur distance
-            cur_rot=(self.pth-init_angle) % (2*math.pi)
+            cur_rot=math.fmod(self.pth-init_angle,2*math.pi)
             #sleep cause too much speed
             rospy.sleep(.05)
         #send stop moving speed
@@ -99,7 +102,7 @@ class Lab2:
         :param msg [PoseStamped] The target pose.
         """
         #convert from rocketship numbers to english
-        quat_orig = msg.pose.pose.orientation
+        quat_orig = msg.pose.orientation
         quat_list = [quat_orig.x, quat_orig.y, quat_orig.z, quat_orig.w]
         (roll , pitch , yaw) = euler_from_quaternion (quat_list)
         #initial pose
@@ -108,9 +111,14 @@ class Lab2:
         target_pose={'x':msg.pose.position.x,'y':msg.pose.position.y, 'th':yaw}
         #calculate the l bowserjr needs to drive
         distance=math.hypot(target_pose['x']-init_pose['x'],target_pose['y']-init_pose['y'])
-        #calculate the angle bowserjr needs to turn to face driving direction
-
-
+        #calculate the angle bowser needs to turn to so he faces driving direction
+        alpha=math.atan2(target_pose['y']-init_pose['y'], target_pose['x']-init_pose['x'])
+        #calculate the difference  in angles and feed that into Rotate
+        self.rotate(alpha-init_pose['th'],.25)
+        #drive distance
+        self.drive(distance,.25)
+        #rotate to face final direction
+        self.rotate(target_pose['th']-alpha,.25)
 
 
     def update_odometry(self, msg):
@@ -156,5 +164,4 @@ class Lab2:
 
 if __name__ == '__main__':
     node=Lab2()
-    node.rotate(math.pi,1)
     node.run()
