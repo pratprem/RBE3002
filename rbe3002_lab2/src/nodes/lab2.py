@@ -48,7 +48,7 @@ class Lab2:
 
 
 
-    def drive(self, distance, linear_speed, tolerance=.05):
+    def drive(self, distance, linear_speed=.1, tolerance=.05):
         """
         Drives the robot in a straight line.
         :param distance     [float] [m]   The distance to cover.
@@ -71,7 +71,7 @@ class Lab2:
 
 
 
-    def rotate(self, angle, aspeed, tolerance=.05):
+    def rotate(self, angle, aspeed=.1, tolerance=.05):
         """
         Rotates the robot around the body center by the given angle.
         :param angle         [float] [rad]   The distance to cover.
@@ -114,11 +114,11 @@ class Lab2:
         #calculate the angle bowser needs to turn to so he faces driving direction
         alpha=math.atan2(target_pose['y']-init_pose['y'], target_pose['x']-init_pose['x'])
         #calculate the difference  in angles and feed that into Rotate
-        self.rotate(alpha-init_pose['th'],.25)
+        self.rotate(alpha-init_pose['th'])
         #drive distance
-        self.drive(distance,.25)
+        self.drive(distance)
         #rotate to face final direction
-        self.rotate(target_pose['th']-alpha,.25)
+        self.rotate(target_pose['th']-alpha)
 
 
     def update_odometry(self, msg):
@@ -163,5 +163,6 @@ class Lab2:
         rospy.spin()
 
 if __name__ == '__main__':
-    node=Lab2()
-    node.run()
+    while not rospy.is_shutdown():
+        node=Lab2()
+        node.run()
