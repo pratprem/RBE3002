@@ -48,7 +48,7 @@ class Lab2:
 
 
 
-    def drive(self, distance, linear_speed=.1, tolerance=.05):
+    def drive(self, distance, linear_speed=.2, tolerance=.05):
         """
         Drives the robot in a straight line.
         :param distance     [float] [m]   The distance to cover.
@@ -71,7 +71,7 @@ class Lab2:
 
 
 
-    def rotate(self, angle, aspeed=.1, tolerance=.05):
+    def rotate(self, angle, aspeed=.2, tolerance=.05):
         """
         Rotates the robot around the body center by the given angle.
         :param angle         [float] [rad]   The distance to cover.
@@ -87,9 +87,9 @@ class Lab2:
         else:
             self.send_speed(angular_speed=-abs(aspeed))
         #while not enough rotate
-        while abs(angle-cur_rot) > tolerance:
+        while abs(self._dif_angle(angle,cur_rot))  > tolerance:
             #calculate cur distance
-            cur_rot=math.fmod(self.pth-init_angle,2*math.pi)
+            cur_rot=self._dif_angle(self.pth,init_angle)
             #sleep cause too much speed
             rospy.sleep(.05)
         #send stop moving speed
@@ -114,11 +114,11 @@ class Lab2:
         #calculate the angle bowser needs to turn to so he faces driving direction
         alpha=math.atan2(target_pose['y']-init_pose['y'], target_pose['x']-init_pose['x'])
         #calculate the difference  in angles and feed that into Rotate
-        self.rotate(alpha-init_pose['th'])
+        self.rotate(self._dif_angle(alpha,init_pose['th']))
         #drive distance
         self.drive(distance)
         #rotate to face final direction
-        self.rotate(target_pose['th']-alpha)
+        self.rotate(self._dif_angle(target_pose['th'],alpha))
 
 
     def update_odometry(self, msg):
@@ -157,6 +157,34 @@ class Lab2:
         # TODO
         pass # delete this when you implement your code
 
+    def _norm(self,*args):
+        """
+        internal functions to wrap all angles into -pi to pi space
+        :param  args      [float] [radians] an list of angles to wrap
+        :return angles      [float] [radians] list of angles returned -pi to pi
+        """
+        #convert angle to 0 to 2pi space
+        r= [math.fmod(math.fmod(a,2*math.pi) +2*math.pi,2*math.pi) for a in args]
+        #convert from wrap angle form pi to 2pi to -pi to zero
+        result = tuple([a-2*math.pi if a>math.pi else a for a in r])
+
+        #if len of result is 1 unpack tuple else dont touch
+        if len(result)==1:
+            return result[0]
+        else:
+            return result
+        return result
+
+    def _dif_angle(self,a,b):
+        """
+        internal functions to subtract angle a from angle b
+        :param  a        [float] [radians] first angle
+        :param  b        [float] [radians] second angle
+        :return answer   [float] [radians] a-b
+        """
+        #normalize a and be subtract the result and normalize it then return
+        a,b=self._norm(a,b)
+        return self._norm(a-b)
 
 
     def run(self):
