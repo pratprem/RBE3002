@@ -1,0 +1,12 @@
+<launch>
+  <!--arg for smart launch-->
+  <arg name="state" default="sim"/>
+  <!--import sim launch file if 0-->
+  <group if="$(eval arg('state') =='sim')">
+    <include file="$(find rbe3002_lab2)/src/launch/robot_simulation.launch"/>
+  </group>
+  <!--import real launch files if 1-->
+  <group if="$(eval arg('state') =='real')">
+    <include file="$(find rbe3002_lab2)/src/launch/robot_real.launch"/>
+  </group>
+</launch>
