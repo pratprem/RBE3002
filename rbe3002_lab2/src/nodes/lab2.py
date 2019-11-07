@@ -5,6 +5,7 @@ from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Twist
 from tf.transformations import euler_from_quaternion
 import math
+import numpy as np
 
 class Lab2:
 
@@ -48,11 +49,12 @@ class Lab2:
 
 
 
-    def drive(self, distance, linear_speed=.2, tolerance=.05):
+    def drive(self, distance, linear_speed=.2, tolerance=.01):
         """
         Drives the robot in a straight line.
         :param distance     [float] [m]   The distance to cover.
         :param linear_speed [float] [m/s] The forward linear speed.
+        :param tolerance    [float] [none] tolerance at which robot stops
         """
         #save initial pose
         init_pose={'x':self.px,'y':self.py}
@@ -71,11 +73,12 @@ class Lab2:
 
 
 
-    def rotate(self, angle, aspeed=.2, tolerance=.05):
+    def rotate(self, angle, aspeed=.2, tolerance=.005):
         """
         Rotates the robot around the body center by the given angle.
         :param angle         [float] [rad]   The distance to cover.
         :param angular_speed [float] [rad/s] The angular speed.
+        :param tolerance    [float] [none] tolerance at which robot stops
         """
         #save initial pose
         init_angle=self.pth
@@ -116,7 +119,7 @@ class Lab2:
         #calculate the difference  in angles and feed that into Rotate
         self.rotate(self._dif_angle(alpha,init_pose['th']))
         #drive distance
-        self.drive(distance)
+        self.smooth_drive(distance)
         #rotate to face final direction
         self.rotate(self._dif_angle(target_pose['th'],alpha))
 
@@ -147,20 +150,83 @@ class Lab2:
 
 
 
-    def smooth_drive(self, distance, linear_speed):
+    def smooth_drive(self, distance, linear_speed=.35, accel_distance=.1,tolerance=.01):
         """
         Drives the robot in a straight line by changing the actual speed smoothly.
-        :param distance     [float] [m]   The distance to cover.
-        :param linear_speed [float] [m/s] The maximum forward linear speed.
+        :param distance         [float] [m]   The distance to cover.
+        :param linear_speed     [float] [m/s] The maximum forward linear speed.
+        :param accel_distance   [float] [none] max precentage of distance to cover you want to accelerate for
+        :param tolerance    [float] [none] tolerance at which robot stops
         """
-        ### EXTRA CREDIT
-        # TODO
-        pass # delete this when you implement your code
+        #save initial pose
+        init_pose={'x':self.px,'y':self.py}
+        #useful variables
+        cur_dist=0
+        sleep_time=.05
+        #set initial speed to zero
+        speed=0
+        #generate aceeleration curve
+        curve=self.curve_generator(int(accel_distance*distance*1000),scalar=linear_speed)
+        #accelerate
+        for speed in curve:
+            if abs(distance-cur_dist) > tolerance and cur_dist < distance*accel_distance:
+                break
+            #send appropriate speed
+            self.send_speed(speed)
+            #calculate cur distance
+            cur_dist=math.hypot(self.px-init_pose['x'], self.py-init_pose['y'])
+            #sleep cause too much speed
+            rospy.sleep(sleep_time)
+        #set full speed
+        self.send_speed(linear_speed)
+        #reverse acceleration curve
+        curve.reverse()
+        #max speed
+        while abs(distance-cur_dist) > tolerance and cur_dist < distance*(1-accel_distance):
+            #calculate cur distance
+            cur_dist=math.hypot(self.px-init_pose['x'], self.py-init_pose['y'])
+            #sleep cause too much speed
+            rospy.sleep(sleep_time)
+        #decelerate
+        for speed in curve:
+            if abs(distance-cur_dist) > tolerance:
+                break
+            #send appropriate speed
+            self.send_speed(speed)
+            #calculate cur distance
+            cur_dist=math.hypot(self.px-init_pose['x'], self.py-init_pose['y'])
+            #sleep cause too much speed
+            rospy.sleep(sleep_time)
+        #send stop moving speed
+        self.send_speed()
+
+    def curve_generator(self,length,exponent=2, start=0, end=None, scalar=1, invert=False):
+        """
+        internal function that returns an acceleration curve with the desired amount of points
+        :param  length      [int]   [none] number of integers you want in your curve
+        :param  exponent    [float] [none] optional float that deterines the shape of the curve <1 is exponetial >1 is logaritmic 1 is linear
+        :param  start       [int]   [none] optional scalar to set starting value of curve
+        :param  end         [int]   [none] optional scalar for ending point of curver
+        :param  scalar      [int]   [none] optional scalar to multiply curve by
+        :param  invert      [int]   [none] optional boolean that makes the function return an inverted list
+        :return curve       [list] [floats] retur
+        """
+        #if no end value specified set end to 1 above start
+        if end == None: end=start+1
+        #genrate curve
+        curve=[scalar*(x**exponent) for x in np.linspace(start,end,length,endpoint=False)]
+        #invert curve if invert is true
+        if invert:
+            curve.reverse()
+        #return
+        return curve
+
+
 
     def _norm(self,*args):
         """
         internal functions to wrap all angles into -pi to pi space
-        :param  args      [float] [radians] an list of angles to wrap
+        :param  args        [float] [radians] an list of angles to wrap
         :return angles      [float] [radians] list of angles returned -pi to pi
         """
         #convert angle to 0 to 2pi space
