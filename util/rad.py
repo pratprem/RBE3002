@@ -12,22 +12,37 @@ class Radian:
         self.value=self._norm(angle)
 
     def __add__(self, other):
-        return Radian(self.value+other.value)
+        if type(other) == Radian:
+            return Radian(self.value + other.value)
+        else:
+            return Radian(self.value + other)
 
     def __sub__(self, other):
-        return Radian(self.value-other.value)
+        if type(other) == Radian:
+            return Radian(self.value - other.value)
+        else:
+            return Radian(self.value - other)
 
     def __mul__(self, other):
-        return Radian(self.value*other.value)
+        if type(other) == Radian:
+            return Radian(self.value * other.value)
+        else:
+            return Radian(self.value * other)
 
     def __truediv__(self, other):
-        return Radian(self.value/other.value)
+        if type(other) == Radian:
+            return Radian(self.value / other.value)
+        else:
+            return Radian(self.value / other)
 
     def __str__(self):
         return str(self.value)+" radians"
 
     def __cmp__(self, other):
-        return int(self.value-other.value)
+        if type(other )== Radian:
+            return int(self.value - other.value)
+        else:
+            return int(self.valuei - other)
 
     def _degree_to_radians(a):
         """
