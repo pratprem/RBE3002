@@ -27,12 +27,13 @@ class PathPlanner:
         self.cmd_vel = rospy.Publisher('/path_planner/cspace', GridCells)
         ## Create publishers for A* (expanded cells, frontier, ...)
         ## Choose a the topic names, the message type is GridCells
-        # TODO
+        self.frontier = rospy.Publisher('/path_planner/explored_cells',GridCells)
+        self.frontier = rospy.Publisher('/path_planner/frontier',GridCells)
         ## Initialize the request counter
         # TODO
         ## Sleep to allow roscore to do some housekeeping
         rospy.sleep(1.0)
-        rospy.loginfo("Path planner node ready")
+        rospy.loginfo("Path planner node ready"
 
 
 
