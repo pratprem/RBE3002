@@ -56,7 +56,7 @@ class PathPlanner:
         :param y2 [int or float] Y coordinate of second point.
         :return   [float]        The distance.
         """
-
+        return math.hypot(x2-x1,y2-y1)
 
 
 
@@ -69,8 +69,11 @@ class PathPlanner:
         :param y       [int]           The cell Y coordinate.
         :return        [Point]         The position in the world.
         """
-        ### REQUIRED CREDIT
-        pass
+        #get importatn info out of mapdata
+        resolution=mapdata.info.resolution
+        origin=mapdata.info.origin
+        #convert point
+        return Point(x=int((x-origin.x)/resolution),y=int((y-origin.y)/resolution),z=0)
 
 
 
@@ -82,8 +85,11 @@ class PathPlanner:
         :param wp      [Point]         The world coordinate.
         :return        [(int,int)]     The cell position as a tuple.
         """
-        ### REQUIRED CREDIT
-        pass
+        #get importatn info out of mapdata
+        resolution=mapdata.info.resolution
+        origin=mapdata.info.origin
+        #convert
+        return ((wp.x+.5)*resolution + origin.x ,(wp.y+.5)*resolution + origin.y)
 
 
 
@@ -95,7 +101,6 @@ class PathPlanner:
         :param  path   [[(int,int)]]   The path as a list of tuples (cell coordinates).
         :return        [[PoseStamped]] The path as a list of PoseStamped (world coordinates).
         """
-        ### REQUIRED CREDIT
         pass
 
 
@@ -111,9 +116,14 @@ class PathPlanner:
         :param y       [int]           The Y coordinate in the grid.
         :return        [boolean]       True if the cell is walkable, False otherwise
         """
-        ### REQUIRED CREDIT
-        pass
-
+        #check if xy in bounds
+        if x-mapdata.info.width > 0 or y-mapdata.info.height > 0
+            return False
+        #get cell we want to check
+        index = grid_to_index(x,y)
+        cell = mapdata.data[index]
+        #check if cell is occupied and known.
+        return cell > 0 and cell < 90
 
 
     @staticmethod
@@ -125,8 +135,7 @@ class PathPlanner:
         :param y       [int]           The Y coordinate in the grid.
         :return        [[(int,int)]]   A list of walkable 4-neighbors.
         """
-        ### REQUIRED CREDIT
-        pass
+        return [(x+1,y),(x-1,y),(x,y+1),(x,y-1)]
 
 
 
@@ -139,8 +148,7 @@ class PathPlanner:
         :param y       [int]           The Y coordinate in the grid.
         :return        [[(int,int)]]   A list of walkable 8-neighbors.
         """
-        ### REQUIRED CREDIT
-        pass
+        return [(x+1,y),(x-1,y),(x,y+1),(x,y-1),(x+1,y+1),(x-1,y-1),(x-1,y+1),(x+1,y-1)]
 
 
 
@@ -167,12 +175,8 @@ class PathPlanner:
         ### REQUIRED CREDIT
         rospy.loginfo("Calculating C-Space")
         ## Go through each cell in the occupancy grid
-        ## Inflate the obstacles where necessary
-        # TODO
-        ## Create a GridCells message and publish it
-        # TODO
-        ## Return the C-space
         pass
+
 
 
 
