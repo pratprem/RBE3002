@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import math
 import rospy
 from nav_msgs.srv import GetPlan, GetMap
@@ -45,7 +44,7 @@ class PathPlanner:
         :param y [int] The cell Y coordinate.
         :return  [int] The index.
         """
-        return y*mapdata.width + x
+        return y * mapdata.width + x
 
     @staticmethod
     def euclidean_distance(x1, y1, x2, y2):
@@ -57,8 +56,7 @@ class PathPlanner:
         :param y2 [int or float] Y coordinate of second point.
         :return   [float]        The distance.
         """
-        ### REQUIRED CREDIT
-        pass
+
 
 
 
