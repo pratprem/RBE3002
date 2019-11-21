@@ -20,13 +20,22 @@ class Map:
     def to_occupancy_grid(self):
         pass #do at some point
 
-    #converts all elements > 0 to np.array
+    #converts all elements > 0 to gridcells msg
     def to_grid_cells(self):
         msg=GridCells()
         msg.header.frame_id='map'
         msg.cell_width=self.metadata.resolution
         msg.cell_height=self.metadata.resolution
         msg.cells=[self.grid_to_world(loc) for loc,val in np.ndenumerate(self.data) if val > 0]
+        return msg
+
+    #converts list of (x,y) to gridcells
+    def point_to_grid_cells(self,list):
+        msg=GridCells()
+        msg.header.frame_id='map'
+        msg.cell_width=self.metadata.resolution
+        msg.cell_height=self.metadata.resolution
+        msg.cells=[self.grid_to_world(loc) for loc in list]
         return msg
 
     #converts x,y to grid position in curr map
@@ -42,6 +51,36 @@ class Map:
         origin=self.metadata.origin
         #convert point
         return Point(x=((x+.5)*resolution+origin.position.x),y=((y+.5)*resolution+origin.position.y),z=0)
+
+    #get list of neighbors around point with distance returns all neighbors with values above threshold
+    def get_neighbors(point ,distance=1,threshold=-1):
+        return [(x,y) for x in range(max(0,point[0]-d),min(self.metadata.width,point[0]+d+1)) for y in range(max(0,point[1]-d),min(self.metadata.height,point[1]+d+1)) if self.data[x,y] > threshold]
+        # ^im sorry but also you cant stop me
+
+    @staticmethod
+    def euclidean_distance(p1, p2):
+        """
+        Calculates the Euclidean distance between two points.
+        :param x1 [int or float] X coordinate of first point.
+        :param y1 [int or float] Y coordinate of first point.
+        :param x2 [int or float] X coordinate of second point.
+        :param y2 [int or float] Y coordinate of second point.
+        :return   [float]        The distance.
+        """
+        return math.hypot(p2[0]-p1[0],p2[1]-p1[1])
+
+    def world_to_grid(self, wp):
+        """
+        Transforms a world coordinate into a cell coordinate in the occupancy grid.
+        :param mapdata [OccupancyGrid] The map information.
+        :param wp      [Point]         The world coordinate.
+        :return        [(int,int)]     The cell position as a tuple.
+        """
+        #get importatn info out of mapdata
+        resolution=self.metadata.resolution
+        origin=self.metadata.origin
+        #convert
+        return (int(wp.x-origin.x)/resolution) ,int(wp.y-origin.y)/resolution))
 
     #displays map as image
     def show_map(self):

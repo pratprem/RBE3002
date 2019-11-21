@@ -1,29 +1,36 @@
 import heapq
 
 class PriorityQueue:
-    
-    def __init__(self):
+
+    def __init__(self, start=None):
         """
         Class constructor.
         """
         self.elements = []
+        if start:
+            self.push((0,start,None))
 
-    def empty(self):
+    def __nonzero__(self):
         """
-        Returns True if the queue is empty, False otherwise.
+        Returns False if the queue is empty, True otherwise.
         """
-        return len(self.elements) == 0
+        return len(self.elements)
 
-    def put(self, element, priority):
+    def put(self, *args):
         """
         Puts an element in the queue.
-        :param element  [any type]     The element.
-        :param priority [int or float] The priority.
+        :param args takes a list of tuples (priority,element) to push
         """
-        heapq.heappush(self.elements, (priority, element))
+        [heapq.heappush(self.elements, el) for el in args]
 
-    def get(self):
+    def pop(self):
         """
         Returns the element with the top priority.
         """
-        return heapq.heappop(self.elements)[1]
+        return heapq.heappop(self.elements)[1:3]
+
+    def get_elements(self):
+        """
+        Returns the list of (x,y)
+        """
+        return [e for priority ,e ,prev_e in queue.elements]

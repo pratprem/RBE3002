@@ -1,0 +1,10 @@
+used numpy and open cv in the map class(written by Arjun Gandhi)
+
+numpy:
+  reshape: to turn 1d array map into 2d matrix
+  ones: creates an array of all ones
+  uint8: converts array to uint8 format
+
+cv2:
+  dilate: makes wall thicker
+  erosion: not used in this lab but placed in function for unthickification of walls later
