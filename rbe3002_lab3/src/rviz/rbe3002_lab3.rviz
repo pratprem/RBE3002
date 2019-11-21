@@ -9,9 +9,10 @@ Panels:
         - /Grid1
         - /RobotModel1
         - /C-Space1
-        - /C-Space1/Status1
         - /Explored Cells1
+        - /Explored Cells1/Status1
         - /Frontier1
+        - /Frontier1/Status1
         - /Path1
       Splitter Ratio: 0.5
     Tree Height: 745
@@ -135,9 +136,9 @@ Visualization Manager:
       Name: C-Space
       Topic: /path_planner/cspace
       Value: true
-    - Alpha: 1
+    - Alpha: 0.200000003
       Class: rviz/GridCells
-      Color: 25; 255; 0
+      Color: 255; 0; 0
       Enabled: true
       Name: Explored Cells
       Topic: /path_planner/explored_cells
@@ -169,7 +170,7 @@ Visualization Manager:
       Radius: 0.0299999993
       Shaft Diameter: 0.100000001
       Shaft Length: 0.100000001
-      Topic: /path_planner/path
+      Topic: /plan_path
       Unreliable: false
       Value: true
   Enabled: true

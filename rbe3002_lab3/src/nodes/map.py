@@ -2,6 +2,7 @@ import cv2
 import sys
 import numpy as np
 import copy
+import math
 from geometry_msgs.msg import Point
 from nav_msgs.msg import GridCells
 
@@ -48,13 +49,13 @@ class Map:
         """
         #get importatn info out of mapdata
         resolution=self.metadata.resolution
-        origin=self.metadata.origin
+        origin=self.metadata.origin.position
         #convert point
-        return Point(x=((x+.5)*resolution+origin.position.x),y=((y+.5)*resolution+origin.position.y),z=0)
+        return Point(x=((x+.5)*resolution+origin.x),y=((y+.5)*resolution+origin.y),z=0)
 
     #get list of neighbors around point with distance returns all neighbors with values above threshold
-    def get_neighbors(point ,distance=1,threshold=-1):
-        return [(x,y) for x in range(max(0,point[0]-d),min(self.metadata.width,point[0]+d+1)) for y in range(max(0,point[1]-d),min(self.metadata.height,point[1]+d+1)) if self.data[x,y] > threshold]
+    def get_neighbors(self, point ,d=1,threshold=0):
+        return [(x,y) for x in range(max(0,point[0]-d),min(self.metadata.width,point[0]+d+1)) for y in range(max(0,point[1]-d),min(self.metadata.height,point[1]+d+1)) if self.data[x,y] >= threshold]
         # ^im sorry but also you cant stop me
 
     @staticmethod
@@ -78,9 +79,9 @@ class Map:
         """
         #get importatn info out of mapdata
         resolution=self.metadata.resolution
-        origin=self.metadata.origin
+        origin=self.metadata.origin.position
         #convert
-        return (int(wp.x-origin.x)/resolution) ,int(wp.y-origin.y)/resolution))
+        return (int((wp.x-origin.x)/resolution) ,int((wp.y-origin.y)/resolution))
 
     #displays map as image
     def show_map(self):

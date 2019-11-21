@@ -8,13 +8,13 @@ class PriorityQueue:
         """
         self.elements = []
         if start:
-            self.push((0,start,None))
+            self.put((0,start,None))
 
     def __nonzero__(self):
         """
         Returns False if the queue is empty, True otherwise.
         """
-        return len(self.elements)
+        return len(self.elements) != 0
 
     def put(self, *args):
         """
@@ -33,4 +33,4 @@ class PriorityQueue:
         """
         Returns the list of (x,y)
         """
-        return [e for priority ,e ,prev_e in queue.elements]
+        return [e[1] for e in self.elements]

@@ -26,8 +26,6 @@ class PathPlanner:
         ## Choose a the topic names, the message type is GridCells
         self.explored_cells = rospy.Publisher('/path_planner/explored_cells',GridCells)
         self.frontier = rospy.Publisher('/path_planner/frontier',GridCells)
-        ## Initialize the request counter
-        # TODO
         ## Sleep to allow roscore to do some housekeeping
         rospy.sleep(1.0)
         rospy.loginfo("Path planner node ready")
@@ -55,9 +53,10 @@ class PathPlanner:
         rospy.loginfo("Calculating C-Space")
         new_map=map.morph(padding)
         self.cspace.publish(new_map.to_grid_cells())
+        rospy.loginfo("Calculated C-Space")
         return new_map
 
-    def a_star(map, start, goal):
+    def a_star(self, map, start, goal):
         rospy.loginfo("Executing A* from (%d,%d) to (%d,%d)" % (start[0], start[1], goal[0], goal[1]))
         queue=PriorityQueue(start)
         visited=[]
@@ -72,8 +71,8 @@ class PathPlanner:
                 while came_from[element]:
                     element=came_from[element]
                     path.append(element)
-                return path.reverse()
-            queue.put([(map.euclidean_distance(start,e)+ map.euclidean_distance(e,end),e,element) for e in map.get_neighbors(element) if e not in visited])
+                return path[::-1]
+            queue.put(*[(map.euclidean_distance(start,e)+ map.euclidean_distance(e,goal),e,element) for e in map.get_neighbors(element) if e not in visited])
 
     def yeet(self, map ,visited, queue):
         """
@@ -101,8 +100,8 @@ class PathPlanner:
         rospy.loginfo("Returning a Path message")
         msg=Path()
         msg.header.frame_id='map'
-        real_path=[map.grid_to_world(loc) for loc in path]
-        msg.poses=[Pose(x=x,y=y) for (x,y) in real_path]
+        msg.poses=[PoseStamped(pose=Pose(position=map.grid_to_world(loc))) for loc in path]
+        return msg
 
     def plan_path(self, msg):
         """
@@ -112,15 +111,15 @@ class PathPlanner:
         """
         ## Request the map
         ## In case of error, return an empty path
-        mapdata = PathPlanner.request_map()
-        if mapdata is None:
+        map = Map(PathPlanner.request_map())
+        if map is None:
             return Path()
         ## Calculate the C-space and publish it
-        cspace_map = self.calc_cspace(mapdata, 1)
+        cspace_map = self.calc_cspace(map, 1)
         ## Execute A*
         start = cspace_map.world_to_grid(msg.start.pose.position)
         goal  = cspace_map.world_to_grid(msg.goal.pose.position)
-        path  = PathPlanner.a_star(cspace_map, start, goal)
+        path  = self.a_star(cspace_map, start, goal)
         ## Optimize waypoints
         #waypoints = PathPlanner.optimize_path(path)
         ## Return a Path message
