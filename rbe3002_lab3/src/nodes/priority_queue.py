@@ -16,12 +16,12 @@ class PriorityQueue:
         """
         return len(self.elements) != 0
 
-    def put(self, *args):
+    def put(self, el):
         """
         Puts an element in the queue.
         :param args takes a list of tuples (priority,element) to push
         """
-        [heapq.heappush(self.elements, el) for el in args]
+        heapq.heappush(self.elements, el)
 
     def pop(self):
         """

@@ -59,12 +59,12 @@ class PathPlanner:
     def a_star(self, map, start, goal):
         rospy.loginfo("Executing A* from (%d,%d) to (%d,%d)" % (start[0], start[1], goal[0], goal[1]))
         queue=PriorityQueue(start)
-        visited=[]
+        visited=set()
         came_from={}
         while queue:
             self.yeet(map, visited, queue.get_elements())
             element, previous_element=queue.pop()
-            visited.append(element)
+            visited.add(element)
             came_from[element]=previous_element
             if element == goal:
                 path=[element]
@@ -72,7 +72,8 @@ class PathPlanner:
                     element=came_from[element]
                     path.append(element)
                 return path[::-1]
-            queue.put(*[(map.euclidean_distance(start,e)+ map.euclidean_distance(e,goal),e,element) for e in map.get_neighbors(element) if e not in visited])
+            print(queue.elements)
+            [queue.put((map.euclidean_distance(start,e)+ map.euclidean_distance(e,goal),e,element)) for e in map.get_neighbors(element) if e not in visited and e not in queue.get_elements()]
 
     def yeet(self, map ,visited, queue):
         """

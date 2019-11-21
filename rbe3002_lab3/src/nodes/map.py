@@ -54,8 +54,8 @@ class Map:
         return Point(x=((x+.5)*resolution+origin.x),y=((y+.5)*resolution+origin.y),z=0)
 
     #get list of neighbors around point with distance returns all neighbors with values above threshold
-    def get_neighbors(self, point ,d=1,threshold=0):
-        return [(x,y) for x in range(max(0,point[0]-d),min(self.metadata.width,point[0]+d+1)) for y in range(max(0,point[1]-d),min(self.metadata.height,point[1]+d+1)) if self.data[x,y] >= threshold]
+    def get_neighbors(self, point ,d=1,threshold=50):
+        return [(x,y) for x in range(max(0,point[0]-d),min(self.metadata.width,point[0]+d+1)) for y in range(max(0,point[1]-d),min(self.metadata.height,point[1]+d+1)) if self.data[x,y] <= threshold]
         # ^im sorry but also you cant stop me
 
     @staticmethod

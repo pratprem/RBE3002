@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 from nav_msgs.srv import GetPlan
 from geometry_msgs.msg import Pose, PoseStamped, Point
-from nav_msgs.msg import Odometry
+from nav_msgs.msg import Odometry , Path
+from std_msgs.msg import Bool
 import rospy
 from tf.transformations import euler_from_quaternion
 class Lab3:
@@ -10,17 +11,18 @@ class Lab3:
         """
         Class constructor
         """
-        ### Initialize node, name it 'lab2'
+        ### Initialize node, name it 'lab3'
         rospy.init_node('lab3')
         #subscribe to target_node
         rospy.Subscriber('/move_base_simple/goal', PoseStamped , self.go_to)
         rospy.Subscriber('/odom', Odometry , self.update_odometry)
-
+        self.path_pub=rospy.Publisher('/path_planner/path', Path)
+        self.robot_go=rospy.Publisher('/path_exec/go', PoseStamped)
         #initiallizing variables needed
         self.px=0.0
         self.py=0.0
         self.pth=0.0
-
+        self.ready=True
         rospy.sleep(1)
 
     def run(self):
@@ -29,16 +31,13 @@ class Lab3:
         """
         rospy.spin()
 
+
     def go_to(self, msg):
         """
         Calls rotate(), drive(), and rotate() to attain a given pose.
         This method is a callback bound to a Subscriber.
         :param msg [PoseStamped] The target pose.
         """
-        #convert from rocketship numbers to english
-        quat_orig = msg.pose.orientation
-        quat_list = [quat_orig.x, quat_orig.y, quat_orig.z, quat_orig.w]
-        (roll , pitch , yaw) = euler_from_quaternion (quat_list)
         #initial pose
         init_pose=PoseStamped(pose=Pose(position=Point(x=self.px,y=self.py)))
         #target pose
@@ -48,7 +47,15 @@ class Lab3:
         rospy.loginfo('Getting Path')
         rospy.wait_for_service('plan_path')
         service=rospy.ServiceProxy('plan_path',GetPlan)
-        path=service(init_pose,target_pose,0.0)
+        path=service(init_pose,target_pose,1.0).plan
+        self.path_pub.publish(path)
+        for pose in path.poses:
+            self.robot_go.publish(pose)
+            rospy.wait_for_message('/path_exec/reached',Bool)
+
+
+
+
 
     def update_odometry(self, msg):
         """

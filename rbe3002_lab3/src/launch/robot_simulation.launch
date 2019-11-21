@@ -16,4 +16,5 @@
   <!--launch lab 3 nodes-->
   <node pkg="rbe3002_lab3" name="path_planner" type="path_planner.py"/>
   <node pkg="rbe3002_lab3" name="lab3" type="lab3.py"/>
+  <node pkg="rbe3002_lab2" name="lab2" type="lab2.py"/>
 </launch>

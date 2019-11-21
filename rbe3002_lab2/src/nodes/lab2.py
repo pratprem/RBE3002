@@ -3,9 +3,10 @@ import rospy
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Twist
-from tf.transformations import euler_from_quaternion
+from std_msgs.msg import Bool
 import math
 import numpy as np
+from tf.transformations import euler_from_quaternion
 
 class Lab2:
 
@@ -17,9 +18,10 @@ class Lab2:
         rospy.init_node('lab2')
         ### Tell ROS that this node publishes Twist messages on the '/cmd_vel' topic
         self.cmd_vel = rospy.Publisher('/cmd_vel', Twist)
+        self.reached = rospy.Publisher('path_exec/reached', Bool)
         #subscribing to odom and pose nodes
         rospy.Subscriber('/odom', Odometry , self.update_odometry)
-        rospy.Subscriber('/move_base_simple/goal', PoseStamped , self.go_to)
+        rospy.Subscriber('/path_exec/go', PoseStamped , self.go_to)
         #initiallizing variables needed
         self.px=0.0
         self.py=0.0
@@ -73,7 +75,7 @@ class Lab2:
 
 
 
-    def rotate(self, angle, aspeed=.2, tolerance=.005):
+    def rotate(self, angle, aspeed=.2, tolerance=.01):
         """
         Rotates the robot around the body center by the given angle.
         :param angle         [float] [rad]   The distance to cover.
@@ -104,14 +106,10 @@ class Lab2:
         This method is a callback bound to a Subscriber.
         :param msg [PoseStamped] The target pose.
         """
-        #convert from rocketship numbers to english
-        quat_orig = msg.pose.orientation
-        quat_list = [quat_orig.x, quat_orig.y, quat_orig.z, quat_orig.w]
-        (roll , pitch , yaw) = euler_from_quaternion (quat_list)
         #initial pose
         init_pose={'x':self.px,'y':self.py, 'th':self.pth}
         #target pose
-        target_pose={'x':msg.pose.position.x,'y':msg.pose.position.y, 'th':yaw}
+        target_pose={'x':msg.pose.position.x,'y':msg.pose.position.y}
         #calculate the l bowserjr needs to drive
         distance=math.hypot(target_pose['x']-init_pose['x'],target_pose['y']-init_pose['y'])
         #calculate the angle bowser needs to turn to so he faces driving direction
@@ -119,10 +117,8 @@ class Lab2:
         #calculate the difference  in angles and feed that into Rotate
         self.rotate(self._dif_angle(alpha,init_pose['th']))
         #drive distance
-        self.smooth_drive(distance)
-        #rotate to face final direction
-        self.rotate(self._dif_angle(target_pose['th'],alpha))
-
+        self.drive(distance)
+        self.reached.publish(Bool(True))
 
     def update_odometry(self, msg):
         """
