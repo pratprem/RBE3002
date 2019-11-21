@@ -4,7 +4,7 @@ import rospy
 from nav_msgs.srv import GetPlan, GetMap
 from nav_msgs.msg import GridCells, OccupancyGrid, Path
 from geometry_msgs.msg import Point, Pose, PoseStamped
-
+from map import Map
 
 
 class PathPlanner:
@@ -17,13 +17,13 @@ class PathPlanner:
         """
         ### REQUIRED CREDIT
         ## Initialize the node and call it "path_planner"
-        rospy.init_node("path_planner")
+        rospy.init_node('path_planner')
         ## Create a new service called "plan_path" that accepts messages of
         ## type GetPlan and calls self.plan_path() when a message is received
-        self.path_serv=rospy.Service("plan_path",GetPlan,self.plan_path)
+        self.path_serv=rospy.Service('plan_path',GetPlan,self.plan_path)
         ## Create a publisher for the C-space (the enlarged occupancy grid)
         ## The topic is "/path_planner/cspace", the message type is GridCells
-        self.cmd_vel = rospy.Publisher('/path_planner/cspace', GridCells)
+        self.cspace = rospy.Publisher('/path_planner/cspace', GridCells)
         ## Create publishers for A* (expanded cells, frontier, ...)
         ## Choose a the topic names, the message type is GridCells
         self.frontier = rospy.Publisher('/path_planner/explored_cells',GridCells)
@@ -32,19 +32,9 @@ class PathPlanner:
         # TODO
         ## Sleep to allow roscore to do some housekeeping
         rospy.sleep(1.0)
-        rospy.loginfo("Path planner node ready"
+        rospy.loginfo("Path planner node ready")
 
 
-
-    @staticmethod
-    def grid_to_index(mapdata, x, y):
-        """
-        Returns the index corresponding to the given (x,y) coordinates in the occupancy grid.
-        :param x [int] The cell X coordinate.
-        :param y [int] The cell Y coordinate.
-        :return  [int] The index.
-        """
-        return y * mapdata.width + x
 
     @staticmethod
     def euclidean_distance(x1, y1, x2, y2):
@@ -57,24 +47,6 @@ class PathPlanner:
         :return   [float]        The distance.
         """
         return math.hypot(x2-x1,y2-y1)
-
-
-
-    @staticmethod
-    def grid_to_world(mapdata, x, y):
-        """
-        Transforms a cell coordinate in the occupancy grid into a world coordinate.
-        :param mapdata [OccupancyGrid] The map information.
-        :param x       [int]           The cell X coordinate.
-        :param y       [int]           The cell Y coordinate.
-        :return        [Point]         The position in the world.
-        """
-        #get importatn info out of mapdata
-        resolution=mapdata.info.resolution
-        origin=mapdata.info.origin
-        #convert point
-        return Point(x=int((x-origin.x)/resolution),y=int((y-origin.y)/resolution),z=0)
-
 
 
     @staticmethod
@@ -117,38 +89,13 @@ class PathPlanner:
         :return        [boolean]       True if the cell is walkable, False otherwise
         """
         #check if xy in bounds
-        if x-mapdata.info.width > 0 or y-mapdata.info.height > 0
+        if x-mapdata.info.width > 0 or y-mapdata.info.height > 0:
             return False
         #get cell we want to check
         index = grid_to_index(x,y)
         cell = mapdata.data[index]
         #check if cell is occupied and known.
         return cell > 0 and cell < 90
-
-
-    @staticmethod
-    def neighbors_of_4(mapdata, x, y):
-        """
-        Returns the walkable 4-neighbors cells of (x,y) in the occupancy grid.
-        :param mapdata [OccupancyGrid] The map information.
-        :param x       [int]           The X coordinate in the grid.
-        :param y       [int]           The Y coordinate in the grid.
-        :return        [[(int,int)]]   A list of walkable 4-neighbors.
-        """
-        return [(x+1,y),(x-1,y),(x,y+1),(x,y-1)]
-
-
-
-    @staticmethod
-    def neighbors_of_8(mapdata, x, y):
-        """
-        Returns the walkable 8-neighbors cells of (x,y) in the occupancy grid.
-        :param mapdata [OccupancyGrid] The map information.
-        :param x       [int]           The X coordinate in the grid.
-        :param y       [int]           The Y coordinate in the grid.
-        :return        [[(int,int)]]   A list of walkable 8-neighbors.
-        """
-        return [(x+1,y),(x-1,y),(x,y+1),(x,y-1),(x+1,y+1),(x-1,y-1),(x-1,y+1),(x+1,y-1)]
 
 
 
@@ -159,23 +106,25 @@ class PathPlanner:
         :return [OccupancyGrid] The grid if the service call was successful,
                                 None in case of error.
         """
-        ### REQUIRED CREDIT
-        rospy.loginfo("Requesting the map")
+        rospy.loginfo('Getting Map')
+        rospy.wait_for_service('static_map')
+        service=rospy.ServiceProxy('static_map',GetMap)
+        return service().map
 
 
 
-    def calc_cspace(self, mapdata, padding):
+    def calc_cspace(self, map, padding):
         """
         Calculates the C-Space, i.e., makes the obstacles in the map thicker.
         Publishes the list of cells that were added to the original map.
-        :param mapdata [OccupancyGrid] The map data.
+        :param mapdata [Map]           The map object.
         :param padding [int]           The number of cells around the obstacles.
         :return        [[int8]]        The C-Space as a list of values from 0 to 100.
         """
         ### REQUIRED CREDIT
         rospy.loginfo("Calculating C-Space")
-        ## Go through each cell in the occupancy grid
-        pass
+        new_map=map.morph(padding)
+        self.cspace.publish(new_map.to_grid_cells())
 
 
 
@@ -243,4 +192,10 @@ class PathPlanner:
 
 
 if __name__ == '__main__':
-    PathPlanner().run()
+    planner=PathPlanner()
+    mapdata=planner.request_map()
+    map=Map(mapdata)
+    planner.calc_cspace(map,1)
+
+
+    planner.run()
