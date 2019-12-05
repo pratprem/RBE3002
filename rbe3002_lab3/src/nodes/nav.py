@@ -11,8 +11,8 @@ class Lab3:
         """
         Class constructor
         """
-        ### Initialize node, name it 'lab3'
-        rospy.init_node('lab3')
+        ### Initialize node, name it 'nav'
+        rospy.init_node('nav')
         #subscribe to target_node
         rospy.Subscriber('/move_base_simple/goal', PoseStamped , self.go_to)
         rospy.Subscriber('/odom', Odometry , self.update_odometry)

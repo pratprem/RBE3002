@@ -14,8 +14,8 @@ class Lab2:
         """
         Class constructor
         """
-        ### Initialize node, name it 'lab2'
-        rospy.init_node('lab2')
+        ### Initialize node, name it 'map'
+        rospy.init_node('map')
         ### Tell ROS that this node publishes Twist messages on the '/cmd_vel' topic
         self.cmd_vel = rospy.Publisher('/cmd_vel', Twist)
         self.reached = rospy.Publisher('path_exec/reached', Bool)

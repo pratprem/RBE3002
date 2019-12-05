@@ -4,5 +4,5 @@
   <!--import gazebo empty world-->
   <include file="$(find turtlebot3_gazebo)/launch/turtlebot3_empty_world.launch"/>
   <!--launch node-->
-  <node pkg="rbe3002_lab2" name="lab2" type="lab2.py"/>
+  <node pkg="rbe3002_lab2" name="move" type="move.py"/>
 </launch>
