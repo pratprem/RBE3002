@@ -53,7 +53,7 @@ class Nav:
         for pose in path.poses:
             self.robot_go.publish(pose)
             rospy.wait_for_message('/path_exec/reached',Bool)
-        self.finish_path.pulish(Bool(True))
+        self.finish_path.publish(Bool(True))
 
 
     def update_odometry(self, msg):
