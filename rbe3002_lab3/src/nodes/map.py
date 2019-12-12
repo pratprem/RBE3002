@@ -43,6 +43,34 @@ class Map:
         msg.cells=[self.grid_to_world(loc) for loc in list]
         return msg
 
+    def c_space(self,d=1,path=False):
+        map=copy.deepcopy(self)
+        for index,x in np.ndenumerate(self.data):
+            if path:
+                if x<0:
+                    neighbors=self.get_neighbors(index,d)
+                    for n in neighbors:
+                        map.data[n[0],n[1]]=100
+            if x>70:
+                neighbors=self.get_neighbors(index,d)
+                for n in neighbors:
+                    map.data[n[0],n[1]]=100
+        return map
+
+
+    #get nearest accesible neighbor
+    def nearest_walkable_neigbor(self,(x,y)):
+        i=1
+        while self.data[x,y]!=0:
+            neighbors=self.get_neighbors((x,y),i)
+            for n in neighbors:
+                if self.data[n[0],n[1]] == 0:
+                    x=n[0]
+                    y=n[1]
+                    break
+            i+=1
+        return (x,y)
+
     #converts x,y to grid position in curr map
     def grid_to_world(self, (x,y)):
         """
@@ -58,8 +86,8 @@ class Map:
         return Point(x=((x+.5)*resolution+origin.x),y=((y+.5)*resolution+origin.y),z=0)
 
     #get list of neighbors around point with distance returns all neighbors with values above threshold
-    def get_neighbors(self, point ,d=1,threshold=50):
-        return [(x,y) for x in range(max(0,point[0]-d),min(self.metadata.width,point[0]+d+1)) for y in range(max(0,point[1]-d),min(self.metadata.height,point[1]+d+1)) if self.data[x,y] <= threshold]
+    def get_neighbors(self, point ,d=1,threshold=50, threshold2=-2):
+        return [(x,y) for x in range(max(0,point[0]-d),min(self.metadata.width,point[0]+d+1)) for y in range(max(0,point[1]-d),min(self.metadata.height,point[1]+d+1)) if self.data[x,y] <= threshold and self.data[x,y] >= threshold2]
         # ^im sorry but also you cant stop me
 
     @staticmethod
@@ -103,11 +131,13 @@ class Map:
         kernel=np.ones((ksize,ksize),np.uint8)
         #convert map data between 0s and ones and convert to uint8
         max=float(np.max(self.data))
+        if max<=0:
+            max=1
         map=np.uint8(self.data/max)
         if padding>0:
             new_map.data=cv2.dilate(map,kernel,padding+1)
         elif padding<0:
-            new_map.data=cv2.erode(self.data,kernel,iterations=1)
+            new_map.data=cv2.erode(map,kernel,padding+1)
         else:
             print('padding is 0. why?')
         #convert back into 0-100 space
@@ -151,13 +181,19 @@ class Map:
 
     #finds center of edges on a map returns a list of Edge Objects
     def to_edges(self):
+        img=self.data
         #find contours in wait_for_message
         edge_list=[]
         _, thresh = cv2.threshold(np.uint8(self.data), 0, 255, cv2.THRESH_BINARY)
         _, contours, _=cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_NONE)
         for c in contours:
             m = cv2.moments(c)
-            cx = int(m["m10"] / m["m00"])
-            cy = int(m["m01"] / m["m00"])
-            edge_list.append(Edge(cv2.contourArea(c),(cx,cy)))
-        return edge_list
+            if m["m00"] != 0:
+                cx = int(m["m10"] / m["m00"])
+                cy = int(m["m01"] / m["m00"])
+            else:
+                cx, cy = 0, 0
+                continue
+            edge_list.append(Edge(cv2.arcLength(c,True),(cy,cx)))
+            print([str(e) for e in edge_list])
+        return [e for e in edge_list if e.size>=1]

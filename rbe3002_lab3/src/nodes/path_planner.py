@@ -51,7 +51,7 @@ class PathPlanner:
         :return        [[int8]]        The C-Space as a list of values from 0 to 100.
         """
         rospy.loginfo("Calculating C-Space")
-        new_map=map.morph(padding)
+        new_map=map.c_space(padding,path=True)
         self.cspace.publish(new_map.to_grid_cells())
         rospy.loginfo("Calculated C-Space")
         return new_map
@@ -72,8 +72,7 @@ class PathPlanner:
                     element=came_from[element]
                     path.append(element)
                 return path[::-1]
-            print(queue.elements)
-            [queue.put((map.euclidean_distance(start,e)+ map.euclidean_distance(e,goal) + map.euclidean_distance(e,element),e,element)) for e in map.get_neighbors(element) if e not in visited and e not in queue.get_elements()]
+            [queue.put((map.euclidean_distance(start,e)+ map.euclidean_distance(e,goal) + map.euclidean_distance(e,element),e,element)) for e in map.get_neighbors(element,threshold2=0) if e not in visited and e not in queue.get_elements()]
 
     def yeet(self, map ,visited, queue):
         """
@@ -115,11 +114,11 @@ class PathPlanner:
         if map is None:
             return Path()
         ## Calculate the C-space and publish it
-        cspace_map = self.calc_cspace(map, 4)
+        cspace_map = self.calc_cspace(map, 2)
         ## Execute A*
         start = cspace_map.world_to_grid(msg.start.pose.position)
         goal  = cspace_map.world_to_grid(msg.goal.pose.position)
-        path  = self.a_star(cspace_map, start, goal)
+        path  = self.a_star(cspace_map, cspace_map.nearest_walkable_neigbor(start), cspace_map.nearest_walkable_neigbor(goal))
         ## Optimize waypoints
         #waypoints = PathPlanner.optimize_path(path)
         ## Return a Path message

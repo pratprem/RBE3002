@@ -20,6 +20,7 @@ class Explorer:
         #subscribe to target_node
         self.go=rospy.Publisher('/move_base_simple/goal', PoseStamped)
         self.frontier = rospy.Publisher('/path_planner/frontier',GridCells)
+        self.centroids = rospy.Publisher('/path_planner/centroids',GridCells)
         self.request_map()
         #initiallizing variables needed
         self.px=0.0
@@ -41,16 +42,13 @@ class Explorer:
     def main(self):
         while True:
             rospy.loginfo('Explorer: Calculating Frontiers')
+
+            c_space=self.map.c_space()
             #turn map unkown into edges
-            frontiers=self.map.isolate_frontiers()
-
-            #find frontiers
-            edged=frontiers.edge_detector()
-
+            frontiers=c_space.isolate_frontiers()
             #expand and shrink edges
-            dilate=edged.morph(2)
-            erode=dilate.morph(-2)
-
+            dilate=frontiers.morph(1)
+            erode=dilate.morph(-1)
             if erode:
                 rospy.loginfo('Explorer: Finished Exploring!')
                 self.map=None
@@ -60,10 +58,15 @@ class Explorer:
             #turn eroded map to Edge object list
             edges=erode.to_edges()
             #add sort edges by size
-            edges.sort(key=lambda e: float(self.map.euclidean_distance((self.px,self.py),e.centroid))/e.size)
+            edges.sort(key=lambda e: 1/e.size)
+            for e in edges:
+                print(e)
+
             #send pose staped
+
             rospy.loginfo('Explorer: Sending Edge to Nav')
             rospy.loginfo(edges[0])
+
             self.go.publish(PoseStamped(pose=Pose(position=self.map.grid_to_world(edges[0].centroid))))
             rospy.loginfo('Explorer: Waiting for Robot to Drive')
             #wait for robot to go to path goal

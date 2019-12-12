@@ -51,7 +51,7 @@ class Lab2:
 
 
 
-    def drive(self, distance, linear_speed=.25, tolerance=.01):
+    def drive(self, distance, linear_speed=.15, tolerance=.02):
         """
         Drives the robot in a straight line.
         :param distance     [float] [m]   The distance to cover.
@@ -75,7 +75,7 @@ class Lab2:
 
 
 
-    def rotate(self, angle, aspeed=.3, tolerance=.02):
+    def rotate(self, angle, aspeed=.25, tolerance=.02):
         """
         Rotates the robot around the body center by the given angle.
         :param angle         [float] [rad]   The distance to cover.
@@ -146,7 +146,7 @@ class Lab2:
 
 
 
-    def smooth_drive(self, distance, linear_speed=.35, accel_distance=.1,tolerance=.01):
+    def smooth_drive(self, distance, linear_speed=.35, accel_distance=.1,tolerance=.05):
         """
         Drives the robot in a straight line by changing the actual speed smoothly.
         :param distance         [float] [m]   The distance to cover.
