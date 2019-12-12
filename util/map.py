@@ -5,6 +5,7 @@ import copy
 import math
 from geometry_msgs.msg import Point
 from nav_msgs.msg import GridCells
+from edge import Edge
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -16,6 +17,9 @@ class Map:
 
     def __str__(self):
         return str(self.metadata) + '\n' + str(self.data)
+
+    def __nonzero__(self):
+        return np.count_nonzero(self.data)==0
 
     #converts numpy map back into a 1d array
     def to_occupancy_grid(self):
@@ -98,7 +102,8 @@ class Map:
         ksize=abs(padding*2)+1
         kernel=np.ones((ksize,ksize),np.uint8)
         #convert map data between 0s and ones and convert to uint8
-        map=np.uint8(self.data/100.0)
+        max=float(np.max(self.data))
+        map=np.uint8(self.data/max)
         if padding>0:
             new_map.data=cv2.dilate(map,kernel,padding+1)
         elif padding<0:
@@ -106,5 +111,55 @@ class Map:
         else:
             print('padding is 0. why?')
         #convert back into 0-100 space
-        new_map.data=new_map.data*100.0
+        new_map.data=new_map.data*max
         return new_map
+
+    #takes map with turns the map unkowns into detectable edges and makes all other unkown values 2 returns a new map
+    def invert(self):
+        map=copy.deepcopy(self)
+        #make all that are known to zero
+        map.data[map.data > 0] == 0
+        #make all negative numbers 
+        map.data[map.data < 0] == 128 
+        #return new map
+        return map
+ 
+    #returns a new map with all the edges found uses Canny edge detection
+    def edge_detector(self, blur=False, sigma=.33):
+        map=copy.deepcopy(self)
+        
+        # compute the median of the single channel pixel intensities
+        v = np.median(map.data)
+
+        #if blur specified blur the image
+        if blur:
+            map.data=cv2.GaussianBlur(map.data, (3,3), 0)
+
+	    # apply automatic Canny edge detection using the computed median
+	    lower = int(max(0, (1.0 - sigma) * v))
+	    upper = int(min(255, (1.0 + sigma) * v))
+
+        #calc edges
+        map.data=cv2.Canny(map.data,lower,upper)
+
+        return map
+
+    #finds center of edges on a map returns a list of Edge Objects
+    def to_edges(self):
+        data=self.data
+        #get list of all points that are considered and edge
+        indices = np.where(data != [0])
+        coordinates = zip(indices[0], indices[1])
+        #split list based on if neighbors are connected
+        i=0,
+        edges=[]
+        prev_coord=None
+        for coord in coordinates:
+            neighbors=self.get_neighbors(coord, threshold=0)
+            if not edges[i]:
+                edges[i]=[]
+            elif prev_coord not in neighbors:
+                i+=1
+            edges[i].append(coord)
+        #convert to edge objects and return 
+        return [Edge(edge) for edge in edges]

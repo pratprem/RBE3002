@@ -4,8 +4,8 @@ import rospy
 from nav_msgs.srv import GetPlan, GetMap
 from nav_msgs.msg import GridCells, OccupancyGrid, Path
 from geometry_msgs.msg import Point, Pose, PoseStamped
-from map import Map
-from priority_queue import PriorityQueue
+from ....util.map import Map
+from ....util.priority_queue import PriorityQueue
 
 class PathPlanner:
 
@@ -25,7 +25,6 @@ class PathPlanner:
         ## Create publishers for A* (expanded cells, frontier, ...)
         ## Choose a the topic names, the message type is GridCells
         self.explored_cells = rospy.Publisher('/path_planner/explored_cells',GridCells)
-        self.frontier = rospy.Publisher('/path_planner/frontier',GridCells)
         ## Sleep to allow roscore to do some housekeeping
         rospy.sleep(1.0)
         rospy.loginfo("Path planner node ready")
@@ -38,8 +37,8 @@ class PathPlanner:
                                 None in case of error.
         """
         rospy.loginfo('Getting Map')
-        rospy.wait_for_service('static_map')
-        service=rospy.ServiceProxy('static_map',GetMap)
+        rospy.wait_for_service('map')
+        service=rospy.ServiceProxy('map',GetMap)
         return service().map
 
     def calc_cspace(self, map, padding):
@@ -62,7 +61,7 @@ class PathPlanner:
         visited=set()
         came_from={}
         while queue:
-            self.yeet(map, visited, queue.get_elements())
+            #self.yeet(map, visited, queue.get_elements())
             element, previous_element=queue.pop()
             visited.add(element)
             came_from[element]=previous_element
@@ -81,7 +80,6 @@ class PathPlanner:
         i'm tired and have to be up at 8am :(
         """
         self.explored_cells.publish(map.point_to_grid_cells(visited))
-        self.frontier.publish(map.point_to_grid_cells(queue))
 
     @staticmethod
     def optimize_path(path):

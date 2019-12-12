@@ -5,7 +5,7 @@ from nav_msgs.msg import Odometry , Path
 from std_msgs.msg import Bool
 import rospy
 from tf.transformations import euler_from_quaternion
-class Lab3:
+class Nav:
 
     def __init__(self):
         """
@@ -18,6 +18,7 @@ class Lab3:
         rospy.Subscriber('/odom', Odometry , self.update_odometry)
         self.path_pub=rospy.Publisher('/path_planner/path', Path)
         self.robot_go=rospy.Publisher('/path_exec/go', PoseStamped)
+        self.finish_path=rospy.Publisher('/explorer/reached',Bool)
         #initiallizing variables needed
         self.px=0.0
         self.py=0.0
@@ -52,9 +53,7 @@ class Lab3:
         for pose in path.poses:
             self.robot_go.publish(pose)
             rospy.wait_for_message('/path_exec/reached',Bool)
-
-
-
+        self.finish_path.pulish(Bool(True))
 
 
     def update_odometry(self, msg):
@@ -71,5 +70,5 @@ class Lab3:
         self.pth = yaw
 
 if __name__ == '__main__':
-    planner=Lab3()
+    planner=Nav()
     planner.run()
