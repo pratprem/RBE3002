@@ -27,6 +27,8 @@ class PathPlanner:
         ## Choose a the topic names, the message type is GridCells
         self.explored_cells = rospy.Publisher('/path_planner/explored_cells',GridCells)
         ## Sleep to allow roscore to do some housekeeping
+        self.exploring=True
+        rospy.Subscriber('/move_base_simple/goal', PoseStamped , self.exploring)
         rospy.sleep(1.0)
         rospy.loginfo("Path planner node ready")
 
@@ -52,9 +54,14 @@ class PathPlanner:
         """
         rospy.loginfo("Calculating C-Space")
         new_map=map.c_space(padding,path=True)
-        self.cspace.publish(new_map.to_grid_cells())
+        dialate=map.morph(padding)
+        erode=map.morph(-1*padding)
+        self.cspace.publish(erode.to_grid_cells())
         rospy.loginfo("Calculated C-Space")
         return new_map
+
+    def exploring(self,msg):
+        self.exploring=False
 
     def a_star(self, map, start, goal):
         rospy.loginfo("Executing A* from (%d,%d) to (%d,%d)" % (start[0], start[1], goal[0], goal[1]))
@@ -112,8 +119,9 @@ class PathPlanner:
         """
         rospy.loginfo("Returning a Path message")
         msg=Path()
-        msg.header.frame_id='map'
-        msg.poses=[PoseStamped(pose=Pose(position=map.grid_to_world(loc))) for loc in path]
+        if path:
+            msg.header.frame_id='map'
+            msg.poses=[PoseStamped(pose=Pose(position=map.grid_to_world(loc))) for loc in path]
         return msg
 
     def plan_path(self, msg):
@@ -133,9 +141,14 @@ class PathPlanner:
         start = cspace_map.world_to_grid(msg.start.pose.position)
         goal  = cspace_map.world_to_grid(msg.goal.pose.position)
         path  = self.a_star(cspace_map, cspace_map.nearest_walkable_neigbor(start), cspace_map.nearest_walkable_neigbor(goal))
-        ## Optimize waypoints
-        waypoints = PathPlanner.optimize_path(path)
+        if path:
+            ## Optimize waypoints
+            waypoints = PathPlanner.optimize_path(path)
+        else:
+            waypoints = None
         ## Return a Path message
+        if self.exploring & len(waypoints)>2:
+            waypoints=waypoints[0:len(waypoints)/2]
         return self.path_to_message(map, waypoints)
 
     def run(self):
