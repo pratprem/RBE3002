@@ -18,9 +18,4 @@
   <!--launch rviz with our file-->
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find rbe3002_lab3)/src/rviz/rbe3002_lab3.rviz"/>
 
-  <!--launch nodes-->
-  <node pkg="rbe3002_lab3" name="explorer" type="explorer.py"/>
-  <node pkg="rbe3002_lab3" name="path_planner" type="path_planner.py"/>
-  <node pkg="rbe3002_lab3" name="nav" type="nav.py"/>
-  <node pkg="rbe3002_lab2" name="move" type="move.py"/>
 </launch>

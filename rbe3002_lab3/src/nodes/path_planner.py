@@ -72,7 +72,7 @@ class PathPlanner:
                     element=came_from[element]
                     path.append(element)
                 return path[::-1]
-            [queue.put((map.euclidean_distance(start,e)+ map.euclidean_distance(e,goal) + map.euclidean_distance(e,element),e,element)) for e in map.get_neighbors(element,threshold2=0) if e not in visited and e not in queue.get_elements()]
+            [queue.put((map.euclidean_distance(start,e)+ map.euclidean_distance(e,goal) + 100*map.euclidean_distance(e,element),e,element)) for e in map.get_neighbors(element,threshold2=0) if e not in visited and e not in queue.get_elements()]
 
     def yeet(self, map ,visited, queue):
         """
@@ -89,6 +89,20 @@ class PathPlanner:
         :return     [[(x,y)]] The optimized path as a list of tuples (grid coordinates)
         """
         rospy.loginfo("Optimizing path")
+        i=0
+        print(path)
+        while len(path) >= 3 and i<len(path)-2:
+            if PathPlanner.colinear(*path[i:i+3]):
+                del path[i+1]
+            else:
+                i+=1
+        return path
+
+
+    @staticmethod
+    #determines if 3 points are colinear
+    def colinear(a,b,c):
+        return (c[1]-b[1])*(b[0]-a[0]) == (b[1]-a[1])*(c[0]-b[0])
 
     def path_to_message(self, map, path):
         """
@@ -120,9 +134,9 @@ class PathPlanner:
         goal  = cspace_map.world_to_grid(msg.goal.pose.position)
         path  = self.a_star(cspace_map, cspace_map.nearest_walkable_neigbor(start), cspace_map.nearest_walkable_neigbor(goal))
         ## Optimize waypoints
-        #waypoints = PathPlanner.optimize_path(path)
+        waypoints = PathPlanner.optimize_path(path)
         ## Return a Path message
-        return self.path_to_message(map, path)
+        return self.path_to_message(map, waypoints)
 
     def run(self):
         """

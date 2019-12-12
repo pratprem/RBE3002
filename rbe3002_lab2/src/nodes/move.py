@@ -75,7 +75,7 @@ class Lab2:
 
 
 
-    def rotate(self, angle, aspeed=.25, tolerance=.02):
+    def rotate(self, angle, aspeed=.2, tolerance=.04):
         """
         Rotates the robot around the body center by the given angle.
         :param angle         [float] [rad]   The distance to cover.
