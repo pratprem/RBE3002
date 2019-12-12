@@ -4,8 +4,9 @@ import rospy
 from nav_msgs.srv import GetPlan, GetMap
 from nav_msgs.msg import GridCells, OccupancyGrid, Path
 from geometry_msgs.msg import Point, Pose, PoseStamped
-from ....util.map import Map
-from ....util.priority_queue import PriorityQueue
+
+from map import Map
+from priority_queue import PriorityQueue
 
 class PathPlanner:
 

@@ -1,13 +1,16 @@
+#!/usr/bin/env python
 import rospy
-from ....util.map import Map
-from ....util.edge import Edge
+import sys
+from map import Map
+from edge import Edge
 from nav_msgs.srv import GetPlan, GetMap
 from nav_msgs.msg import GridCells, OccupancyGrid, Path
 from geometry_msgs.msg import Point, Pose, PoseStamped
-from ....util.priority_queue import PriorityQueue
+from priority_queue import PriorityQueue
 from std_msgs.msg import Bool
 
 class Explorer:
+
     def __init__(self):
         """
         Class constructor
@@ -29,41 +32,46 @@ class Explorer:
         :return [OccupancyGrid] The grid if the service call was successful,
                                 None in case of error.
         """
-        rospy.loginfo('Getting Map')
-        rospy.wait_for_service('map')
-        service=rospy.ServiceProxy('map',GetMap)
+        rospy.loginfo('Explorer: Getting Map')
+        rospy.wait_for_service('dynamic_map')
+        service=rospy.ServiceProxy('dynamic_map',GetMap)
         self.map=Map(service().map)
+        rospy.loginfo('Explorer: Got Map')
 
     def main(self):
-        while self.map:
+        while True:
+            rospy.loginfo('Explorer: Calculating Frontiers')
             #turn map unkown into edges
-            invert=self.map.invert()
+            frontiers=self.map.isolate_frontiers()
+
             #find frontiers
-            edged=invert.edge_detector()
+            edged=frontiers.edge_detector()
+
             #expand and shrink edges
             dilate=edged.morph(2)
             erode=dilate.morph(-2)
+
             if erode:
+                rospy.loginfo('Explorer: Finished Exploring!')
                 self.map=None
                 break
             #turn publish edges to frontier
             self.frontier.publish(erode.to_grid_cells())
             #turn eroded map to Edge object list
             edges=erode.to_edges()
-            queue=PriorityQueue()
-            #add edges to queue
-            for edge in edges:
-                priority=abs(edge.size/self.map.euclidean_distance((self.px,self.py), edge.centroid))
-                queue.put((priority,edge.centroid))
-            #get top msg
-            target=queue.pop()
+            #add sort edges by size
+            edges.sort(key=lambda e: float(self.map.euclidean_distance((self.px,self.py),e.centroid))/e.size)
             #send pose staped
-            self.go.publish(PoseStamped(pose=Pose(position=self.map.grid_to_world(target))))
+            rospy.loginfo('Explorer: Sending Edge to Nav')
+            rospy.loginfo(edges[0])
+            self.go.publish(PoseStamped(pose=Pose(position=self.map.grid_to_world(edges[0].centroid))))
+            rospy.loginfo('Explorer: Waiting for Robot to Drive')
             #wait for robot to go to path goal
-            rospy.wait_for_message('/explorer/reached',Bool)            
+            rospy.wait_for_message('/explorer/reached',Bool)
+            rospy.loginfo('Explorer: Loop Complete Restarting')
             #update map after movement:
             self.request_map()
-            
+
         rospy.loginfo("Finished Exploring")
     def update_odometry(self, msg):
         """
@@ -85,5 +93,6 @@ class Explorer:
         rospy.spin()
 
 if __name__ == '__main__':
-    planner=Explorer().main()
+    planner=Explorer()
+    planner.main()
     planner.run()

@@ -90,7 +90,7 @@ class Map:
     #displays map as image
     def show_map(self):
         #show map data as a picture
-        cv2.imshow('image',self.data*255)
+        cv2.imshow('image',self.data/np.average(self.data)*255)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
@@ -115,51 +115,49 @@ class Map:
         return new_map
 
     #takes map with turns the map unkowns into detectable edges and makes all other unkown values 2 returns a new map
-    def invert(self):
+    def isolate_frontiers(self):
+        data=copy.deepcopy(self.data)
         map=copy.deepcopy(self)
-        #make all that are known to zero
-        map.data[map.data > 0] == 0
-        #make all negative numbers 
-        map.data[map.data < 0] == 128 
+        #for each pixel is zero and neighbors is -1 set pixel to 100 else set pixel to 0
+        for index,x in np.ndenumerate(self.data):
+            neighbors=[self.data[n[0],n[1]] for n in self.get_neighbors(index)]
+            if x==0 and -1 in neighbors:
+                data[index[0],index[1]]=100
+            else:
+                data[index[0],index[1]]=0
         #return new map
+        map.data=data
         return map
- 
+
     #returns a new map with all the edges found uses Canny edge detection
     def edge_detector(self, blur=False, sigma=.33):
         map=copy.deepcopy(self)
-        
+        map.data=np.uint8(self.data)
         # compute the median of the single channel pixel intensities
-        v = np.median(map.data)
+        #v = np.median(map.data)
 
         #if blur specified blur the image
         if blur:
             map.data=cv2.GaussianBlur(map.data, (3,3), 0)
 
 	    # apply automatic Canny edge detection using the computed median
-	    lower = int(max(0, (1.0 - sigma) * v))
-	    upper = int(min(255, (1.0 + sigma) * v))
-
+	    #lower = int(max(0, (1.0 - sigma) * v))
+	    #upper = int(min(255, (1.0 + sigma) * v))
         #calc edges
-        map.data=cv2.Canny(map.data,lower,upper)
+        map.data=cv2.Canny(map.data,50,150)
 
         return map
 
+
     #finds center of edges on a map returns a list of Edge Objects
     def to_edges(self):
-        data=self.data
-        #get list of all points that are considered and edge
-        indices = np.where(data != [0])
-        coordinates = zip(indices[0], indices[1])
-        #split list based on if neighbors are connected
-        i=0,
-        edges=[]
-        prev_coord=None
-        for coord in coordinates:
-            neighbors=self.get_neighbors(coord, threshold=0)
-            if not edges[i]:
-                edges[i]=[]
-            elif prev_coord not in neighbors:
-                i+=1
-            edges[i].append(coord)
-        #convert to edge objects and return 
-        return [Edge(edge) for edge in edges]
+        #find contours in wait_for_message
+        edge_list=[]
+        _, thresh = cv2.threshold(np.uint8(self.data), 0, 255, cv2.THRESH_BINARY)
+        _, contours, _=cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_NONE)
+        for c in contours:
+            m = cv2.moments(c)
+            cx = int(m["m10"] / m["m00"])
+            cy = int(m["m01"] / m["m00"])
+            edge_list.append(Edge(cv2.contourArea(c),(cx,cy)))
+        return edge_list

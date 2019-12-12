@@ -27,7 +27,7 @@ class PriorityQueue:
         """
         Returns the element with the top priority.
         """
-        return heapq.heappop(self.elements)[1:3]
+        return heapq.heappop(self.elements)[1:]
 
     def get_elements(self):
         """
