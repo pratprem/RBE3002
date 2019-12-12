@@ -22,10 +22,7 @@ class Explorer:
         self.frontier = rospy.Publisher('/path_planner/frontier',GridCells)
         self.centroids = rospy.Publisher('/path_planner/centroids',GridCells)
         self.request_map()
-        #initiallizing variables needed
-        self.px=0.0
-        self.py=0.0
-        self.pth=0.0
+
 
     def request_map(self):
         """
@@ -43,7 +40,7 @@ class Explorer:
         while True:
             rospy.loginfo('Explorer: Calculating Frontiers')
 
-            c_space=self.map.c_space()
+            c_space=self.map.c_space(3)
             #turn map unkown into edges
             frontiers=c_space.isolate_frontiers()
             #expand and shrink edges
@@ -76,18 +73,7 @@ class Explorer:
             self.request_map()
 
         rospy.loginfo("Finished Exploring")
-    def update_odometry(self, msg):
-        """
-        Updates the current pose of the robot.
-        This method is a callback bound to a Subscriber.
-        :param msg [Odometry] The current odometry information.
-        """
-        self.px=msg.pose.pose.position.x
-        self.py=msg.pose.pose.position.y
-        quat_orig = msg.pose.pose.orientation
-        quat_list = [quat_orig.x, quat_orig.y, quat_orig.z, quat_orig.w]
-        (roll , pitch , yaw) = euler_from_quaternion (quat_list)
-        self.pth = yaw
+
 
     def run(self):
         """

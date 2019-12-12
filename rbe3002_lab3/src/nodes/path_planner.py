@@ -128,7 +128,7 @@ class PathPlanner:
         if map is None:
             return Path()
         ## Calculate the C-space and publish it
-        cspace_map = self.calc_cspace(map, 2)
+        cspace_map = self.calc_cspace(map, 3)
         ## Execute A*
         start = cspace_map.world_to_grid(msg.start.pose.position)
         goal  = cspace_map.world_to_grid(msg.goal.pose.position)

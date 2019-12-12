@@ -7,8 +7,9 @@ from std_msgs.msg import Bool
 import math
 import numpy as np
 from tf.transformations import euler_from_quaternion
+import tf
 
-class Lab2:
+class Move:
 
     def __init__(self):
         """
@@ -20,8 +21,10 @@ class Lab2:
         self.cmd_vel = rospy.Publisher('/cmd_vel', Twist)
         self.reached = rospy.Publisher('path_exec/reached', Bool)
         #subscribing to odom and pose nodes
-        rospy.Subscriber('/odom', Odometry , self.update_odometry)
         rospy.Subscriber('/path_exec/go', PoseStamped , self.go_to)
+
+        #init tfLinstener
+        self.tfListener=tf.TransformListener()
         #initiallizing variables needed
         self.px=0.0
         self.py=0.0
@@ -59,6 +62,7 @@ class Lab2:
         :param tolerance    [float] [none] tolerance at which robot stops
         """
         #save initial pose
+        self.update_odometry()
         init_pose={'x':self.px,'y':self.py}
         #useful variables
         cur_dist=0
@@ -67,6 +71,7 @@ class Lab2:
         #while distance not in tolerance
         while abs(distance-cur_dist) > tolerance:
             #calculate cur distance
+            self.update_odometry()
             cur_dist=math.hypot(self.px-init_pose['x'], self.py-init_pose['y'])
             #sleep cause too much speed
             rospy.sleep(.05)
@@ -82,6 +87,7 @@ class Lab2:
         :param angular_speed [float] [rad/s] The angular speed.
         :param tolerance    [float] [none] tolerance at which robot stops
         """
+        self.update_odometry()
         #save initial pose
         init_angle=self.pth
         #useful variables
@@ -94,6 +100,7 @@ class Lab2:
         #while not enough rotate
         while abs(self._dif_angle(angle,cur_rot))  > tolerance:
             #calculate cur distance
+            self.update_odometry()
             cur_rot=self._dif_angle(self.pth,init_angle)
             #sleep cause too much speed
             rospy.sleep(.05)
@@ -107,6 +114,7 @@ class Lab2:
         :param msg [PoseStamped] The target pose.
         """
         #initial pose
+        self.update_odometry()
         init_pose={'x':self.px,'y':self.py, 'th':self.pth}
         #target pose
         target_pose={'x':msg.pose.position.x,'y':msg.pose.position.y}
@@ -120,17 +128,17 @@ class Lab2:
         self.drive(distance)
         self.reached.publish(Bool(True))
 
-    def update_odometry(self, msg):
+    def update_odometry(self):
         """
         Updates the current pose of the robot.
         This method is a callback bound to a Subscriber.
         :param msg [Odometry] The current odometry information.
         """
-        self.px=msg.pose.pose.position.x
-        self.py=msg.pose.pose.position.y
-        quat_orig = msg.pose.pose.orientation
-        quat_list = [quat_orig.x, quat_orig.y, quat_orig.z, quat_orig.w]
-        (roll , pitch , yaw) = euler_from_quaternion (quat_list)
+        (trans,rot)=self.tfListener.lookupTransform('/map','/base_footprint',rospy.Time(0))
+
+        self.px=trans[0]
+        self.py=trans[1]
+        (roll , pitch , yaw) = euler_from_quaternion (rot)
         self.pth = yaw
 
 
@@ -254,5 +262,5 @@ class Lab2:
 
 if __name__ == '__main__':
     while not rospy.is_shutdown():
-        node=Lab2()
+        node=Move()
         node.run()
