@@ -5,6 +5,8 @@ from nav_msgs.msg import Odometry , Path
 from std_msgs.msg import Bool
 import rospy
 from tf.transformations import euler_from_quaternion
+import tf
+
 class Nav:
 
     def __init__(self):
@@ -15,10 +17,12 @@ class Nav:
         rospy.init_node('nav')
         #subscribe to target_node
         rospy.Subscriber('/move_base_simple/goal', PoseStamped , self.go_to)
-        rospy.Subscriber('/odom', Odometry , self.update_odometry)
         self.path_pub=rospy.Publisher('/path_planner/path', Path)
         self.robot_go=rospy.Publisher('/path_exec/go', PoseStamped)
         self.finish_path=rospy.Publisher('/explorer/reached',Bool)
+
+        #init tfLinstener
+        self.tfListener=tf.TransformListener()
         #initiallizing variables needed
         self.px=0.0
         self.py=0.0
@@ -40,6 +44,7 @@ class Nav:
         :param msg [PoseStamped] The target pose.
         """
         #initial pose
+        self.update_odometry()
         init_pose=PoseStamped(pose=Pose(position=Point(x=self.px,y=self.py)))
         #target pose
         target_pose=PoseStamped(pose=Pose(position=Point(x=msg.pose.position.x,y=msg.pose.position.y)))
@@ -56,17 +61,17 @@ class Nav:
         self.finish_path.publish(Bool(True))
 
 
-    def update_odometry(self, msg):
+    def update_odometry(self):
         """
         Updates the current pose of the robot.
         This method is a callback bound to a Subscriber.
         :param msg [Odometry] The current odometry information.
         """
-        self.px=msg.pose.pose.position.x
-        self.py=msg.pose.pose.position.y
-        quat_orig = msg.pose.pose.orientation
-        quat_list = [quat_orig.x, quat_orig.y, quat_orig.z, quat_orig.w]
-        (roll , pitch , yaw) = euler_from_quaternion (quat_list)
+        (trans,rot)=self.tfListener.lookupTransform('/map','/base_footprint',rospy.Time(0))
+
+        self.px=trans[0]
+        self.py=trans[1]
+        (roll , pitch , yaw) = euler_from_quaternion (rot)
         self.pth = yaw
 
 if __name__ == '__main__':

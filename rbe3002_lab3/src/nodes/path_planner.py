@@ -4,7 +4,7 @@ import rospy
 from nav_msgs.srv import GetPlan, GetMap
 from nav_msgs.msg import GridCells, OccupancyGrid, Path
 from geometry_msgs.msg import Point, Pose, PoseStamped
-
+from std_msgs.msg import Bool
 from map import Map
 from priority_queue import PriorityQueue
 
@@ -27,6 +27,8 @@ class PathPlanner:
         ## Choose a the topic names, the message type is GridCells
         self.explored_cells = rospy.Publisher('/path_planner/explored_cells',GridCells)
         ## Sleep to allow roscore to do some housekeeping
+        rospy.Subscriber('/explorer/state',Bool,self.explorer_handle)
+        self.exploring=True
         rospy.sleep(1.0)
         rospy.loginfo("Path planner node ready")
 
@@ -42,6 +44,9 @@ class PathPlanner:
         service=rospy.ServiceProxy('dynamic_map',GetMap)
         return service().map
 
+    def explorer_handle(self,msg):
+        self.exploring=msg.data
+
     def calc_cspace(self, map, padding):
         """
         Calculates the C-Space, i.e., makes the obstacles in the map thicker.
@@ -51,7 +56,7 @@ class PathPlanner:
         :return        [[int8]]        The C-Space as a list of values from 0 to 100.
         """
         rospy.loginfo("Calculating C-Space")
-        new_map=map.c_space(padding,path=True)
+        new_map=map.c_space(padding)
         self.cspace.publish(new_map.to_grid_cells())
         rospy.loginfo("Calculated C-Space")
         return new_map

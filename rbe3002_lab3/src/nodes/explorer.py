@@ -8,6 +8,8 @@ from nav_msgs.msg import GridCells, OccupancyGrid, Path
 from geometry_msgs.msg import Point, Pose, PoseStamped
 from priority_queue import PriorityQueue
 from std_msgs.msg import Bool
+import tf
+from tf.transformations import euler_from_quaternion
 
 class Explorer:
 
@@ -21,11 +23,18 @@ class Explorer:
         self.go=rospy.Publisher('/move_base_simple/goal', PoseStamped)
         self.frontier = rospy.Publisher('/path_planner/frontier',GridCells)
         self.centroids = rospy.Publisher('/path_planner/centroids',GridCells)
+        self.exploring = rospy.Publisher('/explorer/state',Bool)
         self.request_map()
+
+        #init tfLinstener
+        self.tfListener=tf.TransformListener()
+
         #initiallizing variables needed
         self.px=0.0
         self.py=0.0
         self.pth=0.0
+
+        rospy.sleep(1)
 
     def request_map(self):
         """
@@ -40,10 +49,11 @@ class Explorer:
         rospy.loginfo('Explorer: Got Map')
 
     def main(self):
+
         while True:
             rospy.loginfo('Explorer: Calculating Frontiers')
 
-            c_space=self.map.c_space()
+            c_space=self.map.c_space(2)
             #turn map unkown into edges
             frontiers=c_space.isolate_frontiers()
             #expand and shrink edges
@@ -59,13 +69,12 @@ class Explorer:
             edges=erode.to_edges()
             #add sort edges by size
             edges.sort(key=lambda e: 1/e.size)
-            for e in edges:
-                print(e)
-
+            #check if centoid is reachable
             #send pose staped
-
             rospy.loginfo('Explorer: Sending Edge to Nav')
             rospy.loginfo(edges[0])
+
+
 
             self.go.publish(PoseStamped(pose=Pose(position=self.map.grid_to_world(edges[0].centroid))))
             rospy.loginfo('Explorer: Waiting for Robot to Drive')
@@ -76,17 +85,20 @@ class Explorer:
             self.request_map()
 
         rospy.loginfo("Finished Exploring")
-    def update_odometry(self, msg):
+        self.exploring.publish(Bool(False))
+
+
+    def update_odometry(self):
         """
         Updates the current pose of the robot.
         This method is a callback bound to a Subscriber.
         :param msg [Odometry] The current odometry information.
         """
-        self.px=msg.pose.pose.position.x
-        self.py=msg.pose.pose.position.y
-        quat_orig = msg.pose.pose.orientation
-        quat_list = [quat_orig.x, quat_orig.y, quat_orig.z, quat_orig.w]
-        (roll , pitch , yaw) = euler_from_quaternion (quat_list)
+        (trans,rot)=self.tfListener.lookupTransform('/map','/base_footprint',rospy.Time(0))
+
+        self.px=trans[0]
+        self.py=trans[1]
+        (roll , pitch , yaw) = euler_from_quaternion (rot)
         self.pth = yaw
 
     def run(self):
